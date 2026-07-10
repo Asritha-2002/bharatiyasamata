@@ -6,7 +6,7 @@ const connectDB = require('./config/db');
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
 const dashboardRoutes = require('./routes/dashboard');
-const razorpayWebhook = require('./routes/razorpayWebhook');
+const volunteerWenhook = require('./routes/volunteerWebhook')
 
 const app = express();
 connectDB();
@@ -14,7 +14,7 @@ connectDB();
 app.use(cors());
 
 // Webhook route needs raw body — must be registered BEFORE express.json()
-app.use('/api/webhook/razorpay', razorpayWebhook);
+app.use('/api/webhook/razorpay', volunteerWenhook);
 
 app.use(express.json());
 app.use('/api/auth', authRoutes);
