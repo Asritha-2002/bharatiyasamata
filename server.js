@@ -14,7 +14,7 @@ connectDB();
 app.use(cors());
 
 // Webhook route needs raw body — must be registered BEFORE express.json()
-app.use('/api/webhook/razorpay', volunteerWenhook);
+app.use('/api/webhook/volunteer', volunteerWenhook);
 
 app.use(express.json());
 app.use('/api/auth', authRoutes);
