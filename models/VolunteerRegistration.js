@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const volunteerRegistrationSchema = new mongoose.Schema({
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   razorpayPaymentId: { type: String, required: true, unique: true },
   razorpayOrderId: { type: String },
 
