@@ -1,6 +1,8 @@
 const express = require('express');
 const crypto = require('crypto');
+const User = require('../models/User');
 const VolunteerRegistration = require('../models/VolunteerRegistration');
+const { recordBookPurchase } = require('../utils/batchLogic');
 
 const router = express.Router();
 
@@ -24,25 +26,23 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
     const p = event.payload.payment.entity;
     const notes = p.notes || {};
 
-    // TEMPORARY diagnostic log — remove once you've confirmed field names
-    // are correct via one successful test payment.
-    console.log('=== Webhook notes received ===');
-    console.log(JSON.stringify(notes, null, 2));
-    console.log('===============================');
-
     const existing = await VolunteerRegistration.findOne({ razorpayPaymentId: p.id });
     if (existing) return res.json({ status: 'already recorded' });
 
-    // "How many free books wants to give" is now a dropdown (e.g. "1 book",
-    // "2 books", "5 books"...) instead of free text — extract the leading number.
     const booksRaw = notes.how_many_free_books_wants_to_give || '0';
     const booksCount = parseInt(booksRaw, 10) || 0;
-
-    // Role is ALWAYS computed from books count — never trusted from any form field,
-    // since the role-selection dropdown has been removed from the form entirely.
     const determinedRole = booksCount >= 2 ? 'RO' : 'VOLUNTEER';
 
+    // "Your REG NO" is pre-filled by our own dashboard link with the paying
+    // user's real regNo — this is how we identify who made the payment.
+    const payerRegNo = notes.your_reg_no || null;
+    let linkedUser = null;
+    if (payerRegNo) {
+      linkedUser = await User.findOne({ regNo: payerRegNo });
+    }
+
     await VolunteerRegistration.create({
+      user: linkedUser ? linkedUser._id : null,
       razorpayPaymentId: p.id,
       razorpayOrderId: p.order_id,
       booksHelperName: notes.books_helper_name || null,
@@ -55,13 +55,17 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
       place: notes.your_place || null,
       email: notes.your_email || p.email || null,
       amount: p.amount / 100,
-      introducedBy: notes.who_introduced_reg_no || null, // best guess — log will confirm
-      regNo: notes.your_reg_no || null,                  // new field — best guess — log will confirm
+      introducedBy: notes.who_introduced_name_and_reg_no || null, // parent's regNo, typed manually
+      regNo: payerRegNo,
       rawNotes: notes,
       rawPaymentDetails: p
     });
 
-    res.json({ status: 'recorded', determinedRole, booksCount });
+    if (linkedUser) {
+      await recordBookPurchase(linkedUser._id, booksCount);
+    }
+
+    res.json({ status: 'recorded', linkedUser: linkedUser ? linkedUser.regNo : null, booksCount, determinedRole });
   } catch (err) {
     console.error('Webhook error:', err);
     res.status(500).json({ error: err.message });

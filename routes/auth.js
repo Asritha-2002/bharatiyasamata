@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { customAlphabet } = require('nanoid');
 const User = require('../models/User');
+const { generateRegNo } = require('../utils/regNoGenerator');
 
 const router = express.Router();
 
@@ -50,16 +51,19 @@ router.post('/register', async (req, res) => {
       codeExists = await User.findOne({ referralCode: newCode });
     }
 
-    const newUser = await User.create({
-      name,
-      email: email.toLowerCase(),
-      contactNumber,
-      password: hashedPassword,
-      referralCode: newCode,
-      referredBy,
-      orderInParent,
-      role: referredBy ? 'VOLUNTEER' : 'ADMIN' // no referral code = root/admin case
-    });
+    const regNo = await generateRegNo();
+
+const newUser = await User.create({
+  name,
+  email: email.toLowerCase(),
+  contactNumber,
+  password: hashedPassword,
+  referralCode: newCode,
+  regNo, // NEW
+  referredBy,
+  orderInParent,
+  role: referredBy ? 'VOLUNTEER' : 'ADMIN'
+});
 
     const token = jwt.sign({ id: newUser._id, role: newUser.role }, process.env.JWT_SECRET, {
       expiresIn: '7d'

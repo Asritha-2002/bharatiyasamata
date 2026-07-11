@@ -6,30 +6,23 @@ const userSchema = new mongoose.Schema({
   contactNumber: { type: String, required: true },
   password: { type: String, required: true },
 
-  // Role: everyone starts as Volunteer. RO unlocks recruiting. SO is just a tag.
   role: {
     type: String,
     enum: ['ADMIN', 'VOLUNTEER', 'RO', 'SO'],
     default: 'VOLUNTEER'
   },
 
-  // Every user gets their own referral code immediately at signup —
-  // but a VOLUNTEER's code is inert until they're promoted to RO.
   referralCode: { type: String, required: true, unique: true },
 
-  // Who recruited this person. null only for Admin.
-  referredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  // NEW — permanent registration ID, used to link real payments back to this user
+  regNo: { type: String, required: true, unique: true },
 
-  // Position among their parent's recruits, in join order — this is what
-  // determines which batch-of-12 this person belongs to.
+  referredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   orderInParent: { type: Number, default: 0 },
 
-  // Manual toggle for today's goal (no payment gateway yet).
-  // Flipping this to true is what triggers Volunteer -> RO promotion.
   hasPurchasedBooks: { type: Boolean, default: false },
-
-  // Tracks the annual requirement separately from the one-time first purchase.
   lastPurchaseYear: { type: Number, default: null },
+  totalBooksThisYear: { type: Number, default: 0 },
 
   createdAt: { type: Date, default: Date.now }
 });
