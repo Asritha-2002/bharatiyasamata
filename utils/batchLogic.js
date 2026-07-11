@@ -29,17 +29,27 @@ async function checkAndPromoteToSO(parentId) {
   }
 }
 
-// Called when a Volunteer's purchase is marked true.
-// Promotes them individually, then checks if their parent's batch is now complete.
-async function handlePurchaseConfirmed(userId) {
+// Called from the Razorpay webhook whenever a payment is captured for a linked user.
+// Increments their yearly book count, flags them as purchased, promotes
+// VOLUNTEER -> RO once they've bought 2+ books total this year, then checks
+// whether their parent's batch just became complete (RO -> SO).
+async function recordBookPurchase(userId, booksCount) {
   const user = await User.findById(userId);
   if (!user) throw new Error('User not found');
 
-  user.hasPurchasedBooks = true;
-  user.lastPurchaseYear = new Date().getFullYear();
+  const currentYear = new Date().getFullYear();
 
-  // Volunteer -> RO promotion (individual, one-time)
-  if (user.role === 'VOLUNTEER') {
+  // Reset the running total if this is the first purchase of a NEW calendar year
+  if (user.lastPurchaseYear !== currentYear) {
+    user.totalBooksThisYear = 0;
+  }
+
+  user.totalBooksThisYear = (user.totalBooksThisYear || 0) + booksCount;
+  user.hasPurchasedBooks = true;
+  user.lastPurchaseYear = currentYear;
+
+  // Volunteer -> RO promotion, only once total books this year reaches 2+
+  if (user.role === 'VOLUNTEER' && user.totalBooksThisYear >= 2) {
     user.role = 'RO';
   }
 
@@ -53,4 +63,4 @@ async function handlePurchaseConfirmed(userId) {
   return user;
 }
 
-module.exports = { checkAndPromoteToSO, handlePurchaseConfirmed };
+module.exports = { checkAndPromoteToSO, recordBookPurchase };
