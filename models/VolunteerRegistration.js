@@ -7,14 +7,15 @@ const volunteerRegistrationSchema = new mongoose.Schema({
   booksHelperName: String,
   mobilePhone: String,
   dateOfBirth: String,
-  numberOfFreeBooks: String,
-  registerAs: String,
+  numberOfFreeBooks: { type: Number, default: 0 },
+  registerAs: { type: String, enum: ['VOLUNTEER', 'RO'], default: 'VOLUNTEER' },
   asIAm: String,
   qualification: String,
   place: String,
   email: String,
   amount: Number,
   introducedBy: String,
+  regNo: { type: String, default: null }, // new — "Your REG NO" field
 
   status: { type: String, enum: ['CAPTURED', 'FAILED'], default: 'CAPTURED' },
   rawNotes: mongoose.Schema.Types.Mixed,
