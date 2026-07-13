@@ -26,20 +26,34 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'An account with this email already exists.' });
     }
 
-    let referredBy = null;
-    let orderInParent = 0;
+    // Resolve the referrer. A code is looked up as before; if none was sent,
+    // we fall back to the main admin account instead of leaving referredBy
+    // null. This closes a bug where an empty referral code used to make the
+    // new signup an ADMIN (see `role` assignment below).
+    let parent;
 
     if (referralCode) {
-      const parent = await User.findOne({ referralCode });
+      parent = await User.findOne({ referralCode });
       if (!parent) {
         return res.status(400).json({ error: 'Invalid referral code.' });
       }
-      referredBy = parent._id;
-
-      // Count existing children of this parent to determine this new user's position
-      const siblingCount = await User.countDocuments({ referredBy: parent._id });
-      orderInParent = siblingCount + 1;
+    } else {
+      // NOTE: assumes exactly one ADMIN account exists. If that ever isn't
+      // true, replace this with a fixed admin _id from an env var instead
+      // (safer + avoids a query whose result would otherwise be arbitrary).
+      parent = await User.findOne({ role: 'ADMIN' });
+      if (!parent) {
+        return res.status(500).json({ error: 'No admin account is configured.' });
+      }
     }
+
+    const referredBy = parent._id;
+
+    // Count existing children of this parent to determine this new user's position
+    const siblingCount = await User.countDocuments({ referredBy: parent._id });
+    const orderInParent = siblingCount + 1;
+
+    const role = 'VOLUNTEER';
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -53,20 +67,20 @@ router.post('/register', async (req, res) => {
 
     const regNo = await generateRegNo();
 
-const newUser = await User.create({
-  name,
-  email: email.toLowerCase(),
-  contactNumber,
-  password: hashedPassword,
-  referralCode: newCode,
-  regNo, // NEW
-  referredBy,
-  orderInParent,
-  role: referredBy ? 'VOLUNTEER' : 'ADMIN'
-});
+    const newUser = await User.create({
+      name,
+      email: email.toLowerCase(),
+      contactNumber,
+      password: hashedPassword,
+      referralCode: newCode,
+      regNo,
+      referredBy,
+      orderInParent,
+      role,
+    });
 
     const token = jwt.sign({ id: newUser._id, role: newUser.role }, process.env.JWT_SECRET, {
-      expiresIn: '7d'
+      expiresIn: '7d',
     });
 
     res.status(201).json({
@@ -76,8 +90,8 @@ const newUser = await User.create({
         name: newUser.name,
         email: newUser.email,
         role: newUser.role,
-        referralCode: newUser.referralCode
-      }
+        referralCode: newUser.referralCode,
+      },
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -1,25 +1,21 @@
 const mongoose = require('mongoose');
 
 const volunteerRegistrationSchema = new mongoose.Schema({
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  razorpayPaymentId: { type: String, required: true, unique: true },
-  razorpayOrderId: { type: String },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+
+  razorpayPaymentId: { type: String, default: null, unique: true, sparse: true },
+  razorpayOrderId: { type: String, required: true },
 
   booksHelperName: String,
   mobilePhone: String,
-  dateOfBirth: String,
+  email: String,
   numberOfFreeBooks: { type: Number, default: 0 },
   registerAs: { type: String, enum: ['VOLUNTEER', 'RO'], default: 'VOLUNTEER' },
-  asIAm: String,
-  qualification: String,
-  place: String,
-  email: String,
   amount: Number,
-  introducedBy: String,
-  regNo: { type: String, default: null }, // new — "Your REG NO" field
+  introducedBy: String, // parent's regNo, entered/prefilled on checkout
+  regNo: { type: String, default: null }, // the payer's own regNo
 
-  status: { type: String, enum: ['CAPTURED', 'FAILED'], default: 'CAPTURED' },
-  rawNotes: mongoose.Schema.Types.Mixed,
+  status: { type: String, enum: ['CREATED', 'CAPTURED', 'FAILED'], default: 'CREATED' },
   rawPaymentDetails: mongoose.Schema.Types.Mixed,
 
   createdAt: { type: Date, default: Date.now }

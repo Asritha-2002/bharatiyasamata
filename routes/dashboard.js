@@ -40,6 +40,7 @@ router.get('/me', protect, async (req, res) => {
     _id: me._id,
     name: me.name,
     email: me.email,
+    contactNumber: me.contactNumber,
     role: me.role,
     referralCode: me.referralCode,
     regNo: me.regNo, 
