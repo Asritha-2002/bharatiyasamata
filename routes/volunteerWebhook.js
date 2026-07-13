@@ -26,6 +26,15 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
     const p = event.payload.payment.entity;
     const notes = p.notes || {};
 
+    // Payments created through our own Checkout flow (/purchase/create-order)
+    // already carry a user_id in their notes and are fully handled end-to-end
+    // by /purchase/verify. If we let this webhook also process them, it creates
+    // a second, conflicting record for the same payment (duplicate-write race).
+    // So: skip anything that came from our own Checkout flow.
+    if (notes.user_id) {
+      return res.json({ status: 'skipped', reason: 'handled by /purchase/verify instead' });
+    }
+
     const existing = await VolunteerRegistration.findOne({ razorpayPaymentId: p.id });
     if (existing) return res.json({ status: 'already recorded' });
 
