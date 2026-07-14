@@ -22,6 +22,7 @@ app.use('/api/webhook/volunteer', volunteerWenhook);
 
 app.use(express.json());
 app.use('/api/auth', authRoutes);
+app.use('/api/admin/revenue', require('./routes/revenue.js'));
 app.use('/api/admin', adminRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/purchase', purchaseRoutes);
@@ -29,6 +30,8 @@ app.use('/api/banner', bannerRoutes);
 app.use(handleUploadError);
 app.use('/api/gallery',gallery)
 app.use('/api/blogs', require('./routes/blogs.js'));
+app.use('/api/contact', require('./routes/contact.js'));
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

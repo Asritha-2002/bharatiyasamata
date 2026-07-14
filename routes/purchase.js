@@ -124,7 +124,7 @@ router.post('/verify', protect, async (req, res) => {
 router.get('/my-history', protect, async (req, res) => {
   const history = await VolunteerRegistration.find({ user: req.userId, status: 'CAPTURED' })
     .sort({ createdAt: -1 })
-    .select('numberOfFreeBooks amount status createdAt razorpayPaymentId');
+    .select('numberOfFreeBooks amount status createdAt razorpayPaymentId booksHelperName regNo');
   res.json(history);
 });
 
