@@ -2,7 +2,7 @@ const KycSubmission = require('../models/KycSubmission');
 const cloudinary = require('../config/cloudinary');
 const { uploadBufferToCloudinary } = require('../utils/cloudinaryUpload');
 const User = require('../models/User');
-const Payout = require('../models/Payout');
+const Payout = require('../models/PayOut');
 const AADHAAR_PATTERN = /^\d{12}$/;
 
 // GET /api/kyc/me (any logged-in user) -- returns their own submission or null

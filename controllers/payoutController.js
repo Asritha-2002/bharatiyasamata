@@ -1,4 +1,4 @@
-const Payout = require('../models/Payout');
+const Payout = require('../models/PayOut');
 
 // GET /api/payouts/me (any logged-in user) -- their own 12-month schedule
 async function getMyPayouts(req, res) {
