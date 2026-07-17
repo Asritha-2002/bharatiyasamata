@@ -13,7 +13,7 @@ async function generateRegNo() {
     if (match) nextNumber = parseInt(match[1], 10) + 1;
   }
 
-  const regNo = `BSHP-${String(nextNumber).padStart(4, '0')}`;
+  const regNo = `AP26BS${String(nextNumber).padStart(4, '0')}`;
 
   // Safety check in case of any race condition — extremely unlikely but cheap to guard
   const exists = await User.findOne({ regNo });
