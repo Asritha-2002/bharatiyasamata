@@ -18,13 +18,14 @@ async function checkAndPromoteToSO(parentId) {
     batches[batchNumber].push(child);
   });
 
-  // Check if ANY batch has exactly 12 members, all purchased
+  // Check if ANY batch has exactly 12 members, with at least one of them
+  // already promoted to RO
   for (const batchNumber in batches) {
     const batch = batches[batchNumber];
-    if (batch.length === 12 && batch.every((c) => c.hasPurchasedBooks)) {
+    if (batch.some((c) => c.role === 'RO')) {
       parent.role = 'SO';
       await parent.save();
-      return; // one completed batch is enough — stop checking further
+      return; // one qualifying batch is enough — stop checking further
     }
   }
 }

@@ -26,11 +26,33 @@ router.get('/me', protect, async (req, res) => {
     .select('name email contactNumber role hasPurchasedBooks orderInParent')
     .sort({ orderInParent: 1 });
 
-  // Grandchildren — contact info only, no progress
+  // Grandchildren — name only, no contact/role details. We only need their
+  // _id (to group under the right child) and name (in case it's ever
+  // displayed), plus how many recruits THEY have -- but as a count only,
+  // never the actual great-grandchildren records themselves.
   const childIds = children.map((c) => c._id);
-  const grandchildren = await User.find({ referredBy: { $in: childIds } })
-  .select('name email contactNumber role referredBy')
-  .sort({ orderInParent: 1 });
+  const grandchildrenDocs = await User.find({ referredBy: { $in: childIds } })
+    .select('name referredBy')
+    .sort({ orderInParent: 1 });
+
+  const grandchildIds = grandchildrenDocs.map((g) => g._id);
+
+  // Count-only aggregation for great-grandchildren -- never fetch their
+  // actual documents, just how many each grandchild has recruited.
+  const greatGrandchildCounts = await User.aggregate([
+    { $match: { referredBy: { $in: grandchildIds } } },
+    { $group: { _id: '$referredBy', count: { $sum: 1 } } },
+  ]);
+  const countByGrandchild = new Map(
+    greatGrandchildCounts.map((c) => [String(c._id), c.count])
+  );
+
+  const grandchildren = grandchildrenDocs.map((g) => ({
+    _id: g._id,
+    name: g.name,
+    referredBy: g.referredBy,
+    recruitCount: countByGrandchild.get(String(g._id)) || 0,
+  }));
 
   // Can this person actually recruit? Only once they're RO or SO.
   const canRecruit = me.role === 'RO' || me.role === 'SO';

@@ -100,6 +100,7 @@ router.post('/verify', protect, async (req, res) => {
     // This is the real trigger for Volunteer -> RO / RO -> SO promotion,
     // driven by an actual verified payment.
     const updatedUser = await recordBookPurchase(req.userId, registration.numberOfFreeBooks);
+   
 
     try {
       await sendPurchaseConfirmationEmail({
