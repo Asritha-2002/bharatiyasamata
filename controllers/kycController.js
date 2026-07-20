@@ -43,7 +43,7 @@ async function submitKyc(req, res) {
 
     if (!existing && (!aadhaarFile || !chequeFile)) {
       return res.status(400).json({
-        message: 'Both the Aadhaar image and the cancelled cheque image are required',
+        message: 'Both the Aadhaar image and the passbook first page / cancelled cheque  image are required',
       });
     }
 

@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const { customAlphabet } = require('nanoid');
 const User = require('../models/User');
 const { generateRegNo } = require('../utils/regNoGenerator');
-
+const { sendWelcomeEmail, sendNewRecruitNotificationEmail } = require('../utils/sendEmail');
 const router = express.Router();
 
 // Generates short, readable referral codes like "BS7K2P9X"
@@ -13,6 +13,8 @@ const generateCode = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 8);
 // POST /api/auth/register
 // If no referralCode is provided, this is treated as an Admin-created root user
 // (in practice, only your seed script or an admin-only route should allow that).
+
+
 router.post('/register', async (req, res) => {
   try {
     const { name, email, contactNumber, password, referralCode } = req.body;
@@ -26,10 +28,6 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'An account with this email already exists.' });
     }
 
-    // Resolve the referrer. A code is looked up as before; if none was sent,
-    // we fall back to the main admin account instead of leaving referredBy
-    // null. This closes a bug where an empty referral code used to make the
-    // new signup an ADMIN (see `role` assignment below).
     let parent;
 
     if (referralCode) {
@@ -38,9 +36,6 @@ router.post('/register', async (req, res) => {
         return res.status(400).json({ error: 'Invalid recruitment code.' });
       }
     } else {
-      // NOTE: assumes exactly one ADMIN account exists. If that ever isn't
-      // true, replace this with a fixed admin _id from an env var instead
-      // (safer + avoids a query whose result would otherwise be arbitrary).
       parent = await User.findOne({ role: 'ADMIN' });
       if (!parent) {
         return res.status(500).json({ error: 'No admin account is configured.' });
@@ -49,7 +44,6 @@ router.post('/register', async (req, res) => {
 
     const referredBy = parent._id;
 
-    // Count existing children of this parent to determine this new user's position
     const siblingCount = await User.countDocuments({ referredBy: parent._id });
     const orderInParent = siblingCount + 1;
 
@@ -57,7 +51,6 @@ router.post('/register', async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Ensure the generated referral code is actually unique
     let newCode;
     let codeExists = true;
     while (codeExists) {
@@ -82,6 +75,31 @@ router.post('/register', async (req, res) => {
     const token = jwt.sign({ id: newUser._id, role: newUser.role }, process.env.JWT_SECRET, {
       expiresIn: '7d',
     });
+
+    // Send both emails after the account is fully created. Failure here
+    // should never block registration itself -- the account already exists
+    // and the token is already issued, so we just log and move on.
+    try {
+      await sendWelcomeEmail({
+        to: newUser.email,
+        name: newUser.name,
+        regNo: newUser.regNo,
+        referralCode: newUser.referralCode
+      });
+    } catch (emailErr) {
+      console.error('Failed to send welcome email:', emailErr.message);
+    }
+
+    try {
+      await sendNewRecruitNotificationEmail({
+        to: parent.email,
+        parentName: parent.name,
+        newRecruitName: newUser.name,
+        newRecruitRegNo: newUser.regNo
+      });
+    } catch (emailErr) {
+      console.error('Failed to send parent notification email:', emailErr.message);
+    }
 
     res.status(201).json({
       token,

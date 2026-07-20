@@ -17,7 +17,7 @@ async function sendPurchaseConfirmationEmail({ to, name, booksCount, amount, reg
 
       <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
         <tr><td style="padding: 8px 0; color: #666;">Helped Books</td><td style="padding: 8px 0; text-align: right; font-weight: bold;">${booksCount}</td></tr>
-        <tr><td style="padding: 8px 0; color: #666;">Amount Paid</td><td style="padding: 8px 0; text-align: right; font-weight: bold;">₹${amount}</td></tr>
+        <tr><td style="padding: 8px 0; color: #666;">Amount Helped</td><td style="padding: 8px 0; text-align: right; font-weight: bold;">₹${amount}</td></tr>
         <tr><td style="padding: 8px 0; color: #666;">Registration ID</td><td style="padding: 8px 0; text-align: right; font-weight: bold;">${regNo}</td></tr>
         <tr><td style="padding: 8px 0; color: #666;">Payment ID</td><td style="padding: 8px 0; text-align: right; font-family: monospace; font-size: 12px;">${paymentId}</td></tr>
       </table>
@@ -90,4 +90,63 @@ async function sendContactNotificationEmail({ name, mobile, email, message }) {
   });
 }
 
-module.exports = { sendPurchaseConfirmationEmail, sendContactNotificationEmail };
+async function sendWelcomeEmail({ to, name, regNo, referralCode }) {
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px;">
+      <h2 style="color: #344256;">Welcome to Bharatiya Samata Hindi Prachar Parishad</h2>
+      <p>Dear ${name},</p>
+      <p>Your registration was successful. Here are your account details:</p>
+
+      <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+        <tr><td style="padding: 8px 0; color: #666;">Registration ID</td><td style="padding: 8px 0; text-align: right; font-weight: bold;">${regNo}</td></tr>
+        <tr><td style="padding: 8px 0; color: #666;">Your Referral Code</td><td style="padding: 8px 0; text-align: right; font-weight: bold;">${referralCode}</td></tr>
+      </table>
+
+      <p style="color: #666; font-size: 13px;">
+        You can log in to your dashboard anytime to track your progress, view your network, and manage your book purchases.
+        To start recruiting others, purchase at least 2 books through your dashboard first.
+      </p>
+      <p style="margin-top: 24px; color: #999; font-size: 12px;">Bharatiya Samata Hindi Prachar Parishad</p>
+    </div>
+  `;
+
+  await transporter.sendMail({
+    from: `"Bharatiya Samata" <${process.env.GMAIL_USER}>`,
+    to,
+    subject: 'Welcome — Registration Successful',
+    html
+  });
+}
+
+// Sent to the parent (referrer), notifying them that someone new registered under them.
+async function sendNewRecruitNotificationEmail({ to, parentName, newRecruitName, newRecruitRegNo }) {
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px;">
+      <h2 style="color: #344256;">New Recruit Joined Your Network</h2>
+      <p>Dear ${parentName},</p>
+      <p>Someone has just registered using your referral code:</p>
+
+      <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+        <tr><td style="padding: 8px 0; color: #666;">Name</td><td style="padding: 8px 0; text-align: right; font-weight: bold;">${newRecruitName}</td></tr>
+        <tr><td style="padding: 8px 0; color: #666;">Registration ID</td><td style="padding: 8px 0; text-align: right; font-weight: bold;">${newRecruitRegNo}</td></tr>
+      </table>
+
+      <p style="color: #666; font-size: 13px;">You can view them under your network in your dashboard.</p>
+      <p style="margin-top: 24px; color: #999; font-size: 12px;">Bharatiya Samata Hindi Prachar Parishad</p>
+    </div>
+  `;
+
+  await transporter.sendMail({
+    from: `"Bharatiya Samata" <${process.env.GMAIL_USER}>`,
+    to,
+    subject: 'New Recruit Joined Your Network',
+    html
+  });
+}
+
+module.exports = { 
+  sendPurchaseConfirmationEmail, 
+  sendContactNotificationEmail,
+   sendWelcomeEmail,
+  sendNewRecruitNotificationEmail
+};
