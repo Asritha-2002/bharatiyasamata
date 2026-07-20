@@ -18,16 +18,17 @@ async function seed() {
   const hashedPassword = await bcrypt.hash('admin123', 10); // change after first login
   const admin = await User.create({
     name: 'Main Admin',
-    email: 'admin@bharatiyasamata.com',
+    email: 'Bharatiyasamata@gmail.com',
     contactNumber: '9989768564',
     password: hashedPassword,
     role: 'ADMIN',
     referralCode: generateCode(),
+    regNo: 'AP26BS000300',
     referredBy: null,
     hasPurchasedBooks: true
   });
 
-  console.log('Admin created. Referral code:', admin.referralCode);
+  // console.log('Admin created. Referral code:', admin.referralCode, '| Reg No:', admin.regNo);
   process.exit(0);
 }
 

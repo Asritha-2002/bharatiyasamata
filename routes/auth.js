@@ -35,7 +35,7 @@ router.post('/register', async (req, res) => {
     if (referralCode) {
       parent = await User.findOne({ referralCode });
       if (!parent) {
-        return res.status(400).json({ error: 'Invalid referral code.' });
+        return res.status(400).json({ error: 'Invalid recruitment code.' });
       }
     } else {
       // NOTE: assumes exactly one ADMIN account exists. If that ever isn't
