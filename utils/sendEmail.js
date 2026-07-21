@@ -103,7 +103,7 @@ async function sendWelcomeEmail({ to, name, regNo, referralCode }) {
       </table>
 
       <p style="color: #666; font-size: 13px;">
-        You can log in to your dashboard anytime to track your progress, view your network, and manage your book purchases.
+        You can log in to your dashboard anytime to track your progress, view your network, and manage your helping books.
         To start recruiting others, purchase at least 2 books through your dashboard first.
       </p>
       <p style="margin-top: 24px; color: #999; font-size: 12px;">Bharatiya Samata Hindi Prachar Parishad</p>

@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const volunteerRegistrationSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
 
-  razorpayPaymentId: { type: String, default: null, unique: true, sparse: true },
+  razorpayPaymentId: { type: String, },
   razorpayOrderId: { type: String, required: true },
 
   booksHelperName: String,
@@ -20,5 +20,9 @@ const volunteerRegistrationSchema = new mongoose.Schema({
 
   createdAt: { type: Date, default: Date.now }
 });
+volunteerRegistrationSchema.index(
+  { razorpayPaymentId: 1 },
+  { unique: true, partialFilterExpression: { razorpayPaymentId: { $type: 'string' } } }
+);
 
 module.exports = mongoose.model('VolunteerRegistration', volunteerRegistrationSchema);
