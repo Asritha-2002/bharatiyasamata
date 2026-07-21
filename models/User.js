@@ -13,9 +13,13 @@ const userSchema = new mongoose.Schema({
   },
 
   referralCode: { type: String, required: true, unique: true },
-
-  // NEW — permanent registration ID, used to link real payments back to this user
   regNo: { type: String, required: true, unique: true },
+
+  // NEW — address fields
+  state: { type: String, required: true },      // full name, e.g. "Andhra Pradesh"
+  stateCode: { type: String, required: true },   // e.g. "AP" — used later in regNo generation
+  city: { type: String, default: null },
+  houseNumber: { type: String, default: null },
 
   referredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   orderInParent: { type: Number, default: 0 },

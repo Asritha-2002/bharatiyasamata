@@ -1,35 +1,37 @@
-const User = require('../models/User');
+const Counter = require('../models/Counter');
 
-const REG_PREFIX = 'AP26BS';
-const START_NUMBER = 300; // first-ever regNo will be AP26BS000300
-const PAD_LENGTH = 6;     // AP26BS + 000300 = 6 digits
+const COUNTER_ID = 'regNo';
+const REG_MIDDLE = '26BS';
+const START_NUMBER = 300; // first-ever regNo overall will be {CODE}26BS0300
+const PAD_LENGTH = 4;     // 0300, 0301, ...
 
-// Format: AP26BS000300, AP26BS000301, ... sequential and human-readable,
-// matching the style of a real organizational registration number.
-async function generateRegNo() {
-  const lastUser = await User.findOne({ regNo: { $exists: true, $ne: null } })
-    .sort({ createdAt: -1 })
-    .select('regNo');
-
-  let nextNumber = START_NUMBER;
-  if (lastUser && lastUser.regNo) {
-    const match = lastUser.regNo.match(/(\d+)$/);
-    if (match) {
-      const lastNumber = parseInt(match[1], 10);
-      // Only increment past the last used number -- never drop below
-      // START_NUMBER, even if the DB is empty or has stale/lower values.
-      nextNumber = Math.max(lastNumber + 1, START_NUMBER);
-    }
+// Format: {stateCode}26BS{number} e.g. AP26BS0300, TN26BS0301, BR26BS0302
+// One single global sequence shared across all states -- the number always
+// increments by registration order; only the prefix changes based on the
+// registering user's state.
+async function generateRegNo(stateCode) {
+  if (!stateCode) {
+    throw new Error('stateCode is required to generate a registration number.');
   }
 
-  const regNo = `${REG_PREFIX}${String(nextNumber).padStart(PAD_LENGTH, '0')}`;
+  // Atomic increment -- avoids any race condition between simultaneous
+  // registrations, unlike a "read last regNo, then write" approach.
+  const counter = await Counter.findOneAndUpdate(
+    { _id: COUNTER_ID },
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true, setDefaultsOnInsert: true }
+  );
 
-  // Safety check in case of any race condition — extremely unlikely but cheap to guard
-  const exists = await User.findOne({ regNo });
-  if (exists) {
-    return generateRegNo(); // retry with next number
+  // On the very first-ever call, this document didn't exist, so $inc
+  // creates it starting from 1. We want the first number issued to be
+  // START_NUMBER (300) instead -- so detect that case and correct it.
+  let number = counter.seq;
+  if (number === 1) {
+    number = START_NUMBER;
+    await Counter.updateOne({ _id: COUNTER_ID }, { $set: { seq: START_NUMBER } });
   }
 
+  const regNo = `${stateCode}${REG_MIDDLE}${String(number).padStart(PAD_LENGTH, '0')}`;
   return regNo;
 }
 

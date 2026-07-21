@@ -9,7 +9,7 @@ const router = express.Router();
 
 // Generates short, readable referral codes like "BS7K2P9X"
 const generateCode = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 8);
-
+const { getStateCode } = require('../utils/indianStates');
 // POST /api/auth/register
 // If no referralCode is provided, this is treated as an Admin-created root user
 // (in practice, only your seed script or an admin-only route should allow that).
@@ -17,10 +17,16 @@ const generateCode = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 8);
 
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, contactNumber, password, referralCode } = req.body;
+    const { name, email, contactNumber, password, referralCode, state, city, houseNumber } = req.body;
+    console.log(name, email, contactNumber, password, referralCode, state, city, houseNumber)
 
-    if (!name || !email || !contactNumber || !password) {
-      return res.status(400).json({ error: 'All fields are required.' });
+    if (!name || !email || !contactNumber || !password || !state) {
+      return res.status(400).json({ error: 'Name, email, contact number, password, and state are required.' });
+    }
+
+    const stateCode = getStateCode(state);
+    if (!stateCode) {
+      return res.status(400).json({ error: 'Please select a valid state from the list.' });
     }
 
     const existing = await User.findOne({ email: email.toLowerCase() });
@@ -58,7 +64,7 @@ router.post('/register', async (req, res) => {
       codeExists = await User.findOne({ referralCode: newCode });
     }
 
-    const regNo = await generateRegNo();
+    const regNo = await generateRegNo(stateCode);
 
     const newUser = await User.create({
       name,
@@ -67,6 +73,10 @@ router.post('/register', async (req, res) => {
       password: hashedPassword,
       referralCode: newCode,
       regNo,
+      state,
+      stateCode,
+      city: city || null,
+      houseNumber: houseNumber || null,
       referredBy,
       orderInParent,
       role,
@@ -76,9 +86,6 @@ router.post('/register', async (req, res) => {
       expiresIn: '7d',
     });
 
-    // Send both emails after the account is fully created. Failure here
-    // should never block registration itself -- the account already exists
-    // and the token is already issued, so we just log and move on.
     try {
       await sendWelcomeEmail({
         to: newUser.email,
