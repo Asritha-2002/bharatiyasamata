@@ -1,31 +1,39 @@
 const User = require('../models/User');
-
-// Given a parent user, check all their children's batches.
-// If any batch of 12 is fully complete (all 12 have hasPurchasedBooks = true),
-// promote the parent from RO to SO.
+const Settings = require('../models/Settings');
+const { sendSOPromotionEmail } = require('./sendEmail');
+// Given a parent user, check whether they now qualify for RO -> SO promotion.
+//
+// Promotion rule: as soon as the parent has at least `soRequiredRoCount`
+// ROs (or higher -- SO counts too) among ALL of their direct recruits,
+// regardless of how many total recruits they have or how those recruits
+// are grouped into batches. Batching (soRequiredBatchSize) is a separate,
+// purely visual/grouping concept used elsewhere in the app (e.g. the
+// dashboard's batch display) -- it has no bearing on this promotion check.
 async function checkAndPromoteToSO(parentId) {
   const parent = await User.findById(parentId);
   if (!parent || parent.role === 'ADMIN' || parent.role === 'SO') return;
   // Already SO or is Admin — nothing to do.
 
-  const children = await User.find({ referredBy: parentId }).sort({ orderInParent: 1 });
+  let settings = await Settings.findOne();
+  if (!settings) settings = await Settings.create({});
 
-  // Group children into batches of 12 based on orderInParent
-  const batches = {};
-  children.forEach((child) => {
-    const batchNumber = Math.ceil(child.orderInParent / 12);
-    if (!batches[batchNumber]) batches[batchNumber] = [];
-    batches[batchNumber].push(child);
-  });
+  const { soRequiredRoCount } = settings;
 
-  // Check if ANY batch has exactly 12 members, with at least one of them
-  // already promoted to RO
-  for (const batchNumber in batches) {
-    const batch = batches[batchNumber];
-    if (batch.some((c) => c.role === 'RO')) {
-      parent.role = 'SO';
-      await parent.save();
-      return; // one qualifying batch is enough — stop checking further
+  const children = await User.find({ referredBy: parentId });
+
+  const roCount = children.filter((c) => c.role === 'RO' || c.role === 'SO').length;
+
+  if (roCount >= soRequiredRoCount) {
+    parent.role = 'SO';
+    await parent.save();
+     try {
+      await sendSOPromotionEmail({
+        to: parent.email,
+        name: parent.name,
+        regNo: parent.regNo
+      });
+    } catch (emailErr) {
+      console.error('Failed to send SO promotion email:', emailErr.message);
     }
   }
 }
@@ -33,7 +41,7 @@ async function checkAndPromoteToSO(parentId) {
 // Called from the Razorpay webhook whenever a payment is captured for a linked user.
 // Increments their yearly book count, flags them as purchased, promotes
 // VOLUNTEER -> RO once they've bought 2+ books total this year, then checks
-// whether their parent's batch just became complete (RO -> SO).
+// whether their parent now qualifies for RO -> SO promotion.
 async function recordBookPurchase(userId, booksCount) {
   const user = await User.findById(userId);
   if (!user) throw new Error('User not found');

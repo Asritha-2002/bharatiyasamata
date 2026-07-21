@@ -33,6 +33,7 @@ app.use('/api/blogs', require('./routes/blogs.js'));
 app.use('/api/contact', require('./routes/contact.js'));
 app.use('/api/kyc', require('./routes/kyc.js'));
 app.use('/api/payouts', require('./routes/payout.js'));
+app.use('/api/settings', require('./routes/settings.js'));
 
 
 const PORT = process.env.PORT || 5000;

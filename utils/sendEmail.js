@@ -1,5 +1,5 @@
 const nodemailer = require('nodemailer');
-
+const path = require('path');
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -7,10 +7,16 @@ const transporter = nodemailer.createTransport({
     pass: process.env.GMAIL_APP_PASSWORD
   }
 });
+const FRONTEND_URL = process.env.FRONTEND_URL;
+const LOGO_URL = `${FRONTEND_URL}/logo.webp`;
 
 async function sendPurchaseConfirmationEmail({ to, name, booksCount, amount, regNo, paymentId }) {
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <img src="${LOGO_URL}" alt="Logo" style="width: 90px; height: auto;" />
+      </div>
+
       <h2 style="color: #344256;">Payment Confirmation</h2>
       <p>Dear ${name},</p>
       <p>Thank you for your books help. Here are your payment details:</p>
@@ -61,6 +67,10 @@ async function sendContactNotificationEmail({ name, mobile, email, message }) {
 
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <img src="${LOGO_URL}" alt="Logo" style="width: 90px; height: auto;" />
+      </div>
+
       <h2 style="color: #344256;">New Contact Form Submission</h2>
       <p>Someone just submitted the contact form on the website. Details below:</p>
 
@@ -93,13 +103,17 @@ async function sendContactNotificationEmail({ name, mobile, email, message }) {
 async function sendWelcomeEmail({ to, name, regNo, referralCode }) {
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <img src="${LOGO_URL}" alt="Logo" style="width: 90px; height: auto;" />
+      </div>
+
       <h2 style="color: #344256;">Welcome to Bharatiya Samata Hindi Prachar Parishad</h2>
       <p>Dear ${name},</p>
       <p>Your registration was successful. Here are your account details:</p>
 
       <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
         <tr><td style="padding: 8px 0; color: #666;">Registration ID</td><td style="padding: 8px 0; text-align: right; font-weight: bold;">${regNo}</td></tr>
-        <tr><td style="padding: 8px 0; color: #666;">Your Referral Code</td><td style="padding: 8px 0; text-align: right; font-weight: bold;">${referralCode}</td></tr>
+        <tr><td style="padding: 8px 0; color: #666;">Your Recruitment Code</td><td style="padding: 8px 0; text-align: right; font-weight: bold;">${referralCode}</td></tr>
       </table>
 
       <p style="color: #666; font-size: 13px;">
@@ -122,9 +136,13 @@ async function sendWelcomeEmail({ to, name, regNo, referralCode }) {
 async function sendNewRecruitNotificationEmail({ to, parentName, newRecruitName, newRecruitRegNo }) {
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <img src="${LOGO_URL}" alt="Logo" style="width: 90px; height: auto;" />
+      </div>
+
       <h2 style="color: #344256;">New Recruit Joined Your Network</h2>
       <p>Dear ${parentName},</p>
-      <p>Someone has just registered using your referral code:</p>
+      <p>Someone has just registered using your recruitment code:</p>
 
       <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
         <tr><td style="padding: 8px 0; color: #666;">Name</td><td style="padding: 8px 0; text-align: right; font-weight: bold;">${newRecruitName}</td></tr>
@@ -144,9 +162,51 @@ async function sendNewRecruitNotificationEmail({ to, parentName, newRecruitName,
   });
 }
 
-module.exports = { 
-  sendPurchaseConfirmationEmail, 
+// Public URL for your logo, served from the frontend's public folder once
+// deployed. Update FRONTEND_URL via env var when you have your real domain --
+// falls back to localhost for now while developing.
+
+
+// ... existing sendPurchaseConfirmationEmail, sendContactNotificationEmail,
+// sendWelcomeEmail, sendNewRecruitNotificationEmail unchanged ...
+
+async function sendSOPromotionEmail({ to, name, regNo }) {
+ 
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <img src="${LOGO_URL}" alt="Logo" style="width: 90px; height: auto;" />
+      </div>
+
+      <h2 style="color: #344256; text-align: center;">Congratulations, ${name}! 🎉</h2>
+      <p>You've been promoted to <strong>State Organizer (SO)</strong> in recognition of your network's growth.</p>
+
+      <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+        <tr><td style="padding: 8px 0; color: #666;">Registration ID</td><td style="padding: 8px 0; text-align: right; font-weight: bold;">${regNo}</td></tr>
+        <tr><td style="padding: 8px 0; color: #666;">New Role</td><td style="padding: 8px 0; text-align: right; font-weight: bold; color: #059669;">State Organizer</td></tr>
+      </table>
+
+      <p style="color: #666; font-size: 14px;">
+        To become eligible for your monthly payout, please complete your KYC using your Aadhaar card and your bank details, including a cancelled cheque or passbook first page.
+      </p>
+
+      <p style="margin-top: 24px; color: #999; font-size: 12px;">Bharatiya Samata Hindi Prachar Parishad</p>
+    </div>
+  `;
+
+  await transporter.sendMail({
+    from: `"Bharatiya Samata" <${process.env.GMAIL_USER}>`,
+    to,
+    subject: 'Congratulations — You are now a State Organizer!',
+    html
+  });
+}
+
+module.exports = {
+  sendPurchaseConfirmationEmail,
   sendContactNotificationEmail,
-   sendWelcomeEmail,
-  sendNewRecruitNotificationEmail
+  sendWelcomeEmail,
+  sendNewRecruitNotificationEmail,
+  sendSOPromotionEmail
 };

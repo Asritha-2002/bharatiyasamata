@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const Razorpay = require('razorpay');
 const User = require('../models/User');
 const VolunteerRegistration = require('../models/VolunteerRegistration');
+const Settings = require('../models/Settings');
 const { protect } = require('../middleware/authMiddleware');
 const { recordBookPurchase } = require('../utils/batchLogic');
 const { sendPurchaseConfirmationEmail } = require('../utils/sendEmail');
@@ -13,7 +14,7 @@ const razorpay = new Razorpay({
   key_secret: process.env.RAZORPAY_KEY_SECRET
 });
 
-const PRICE_PER_BOOK = 60;
+
 
 // STEP 1 — create the Razorpay order + a pending registration record
 router.post('/create-order', protect, async (req, res) => {
@@ -27,7 +28,13 @@ router.post('/create-order', protect, async (req, res) => {
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ error: 'User not found.' });
 
-    const totalAmount = bookCount * PRICE_PER_BOOK;
+    // Always read the current price from Settings -- never trust a price
+    // sent from the frontend, and never let this drift from what admins set.
+    let settings = await Settings.findOne();
+    if (!settings) settings = await Settings.create({});
+    const pricePerBook = settings.pricePerBook;
+
+    const totalAmount = bookCount * pricePerBook;
 
     const order = await razorpay.orders.create({
       amount: totalAmount * 100, // paise
@@ -58,7 +65,8 @@ router.post('/create-order', protect, async (req, res) => {
       amount: order.amount,
       currency: order.currency,
       keyId: process.env.RAZORPAY_KEY_ID,
-      registrationId: registration._id
+      registrationId: registration._id,
+      pricePerBook // send it back so the frontend can display it accurately too
     });
   } catch (err) {
     console.error('create-order error:', err);

@@ -3,6 +3,7 @@ const cloudinary = require('../config/cloudinary');
 const { uploadBufferToCloudinary } = require('../utils/cloudinaryUpload');
 const User = require('../models/User');
 const Payout = require('../models/PayOut');
+const Settings = require('../models/Settings');
 const AADHAAR_PATTERN = /^\d{12}$/;
 
 // GET /api/kyc/me (any logged-in user) -- returns their own submission or null
@@ -116,8 +117,6 @@ async function getAllKyc(req, res) {
 
 // PATCH /api/kyc/:id/approve (admin only)
 
-
-// PATCH /api/kyc/:id/approve (admin only)
 async function approveKyc(req, res) {
   try {
     const submission = await KycSubmission.findByIdAndUpdate(
@@ -127,7 +126,7 @@ async function approveKyc(req, res) {
     );
     if (!submission) return res.status(404).json({ message: 'Submission not found' });
 
-    // Only State Organizers are eligible for the ₹10,000/month payout scheme.
+    // Only State Organizers are eligible for the monthly payout scheme.
     // KYC can be approved for anyone (identity verified either way), but the
     // payout schedule only generates for SO members, and only once.
     let payoutsCreated = false;
@@ -136,12 +135,17 @@ async function approveKyc(req, res) {
     if (user && user.role === 'SO') {
       const existingPayouts = await Payout.countDocuments({ user: user._id });
       if (existingPayouts === 0) {
+        let settings = await Settings.findOne();
+        if (!settings) settings = await Settings.create({});
+
+        const { soPayoutAmountPerMonth, soPayoutDurationMonths } = settings;
+
         const startMonth = new Date();
         startMonth.setDate(1);
         startMonth.setHours(0, 0, 0, 0);
 
         const payouts = [];
-        for (let i = 1; i <= 12; i++) {
+        for (let i = 1; i <= soPayoutDurationMonths; i++) {
           const scheduledMonth = new Date(startMonth);
           scheduledMonth.setMonth(scheduledMonth.getMonth() + (i - 1));
           payouts.push({
@@ -149,7 +153,7 @@ async function approveKyc(req, res) {
             kycSubmission: submission._id,
             monthIndex: i,
             scheduledMonth,
-            amount: 10000,
+            amount: soPayoutAmountPerMonth,
             status: 'PENDING',
           });
         }
