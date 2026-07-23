@@ -2,10 +2,10 @@ const Counter = require('../models/Counter');
 
 const COUNTER_ID = 'regNo';
 const REG_MIDDLE = '26BS';
-const START_NUMBER = 300; // first-ever regNo overall will be {CODE}26BS0300
-const PAD_LENGTH = 4;     // 0300, 0301, ...
+const START_NUMBER = 300; // first-ever regNo overall will be {CODE}26BS000300
+const PAD_LENGTH = 6;     // 000300, 000301, ...
 
-// Format: {stateCode}26BS{number} e.g. AP26BS0300, TN26BS0301, BR26BS0302
+// Format: {stateCode}26BS{number} e.g. AP26BS000300, TN26BS000301, BR26BS000302
 // One single global sequence shared across all states -- the number always
 // increments by registration order; only the prefix changes based on the
 // registering user's state.

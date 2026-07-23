@@ -6,7 +6,7 @@ const VolunteerRegistration = require('../models/VolunteerRegistration');
 const Settings = require('../models/Settings');
 const { protect } = require('../middleware/authMiddleware');
 const { recordBookPurchase } = require('../utils/batchLogic');
-const { sendPurchaseConfirmationEmail } = require('../utils/sendEmail');
+const { sendPurchaseConfirmationEmail, sendAdminPurchaseNotificationEmail } = require('../utils/sendEmail');
 const router = express.Router();
 
 const razorpay = new Razorpay({
@@ -122,6 +122,18 @@ router.post('/verify', protect, async (req, res) => {
     } catch (emailErr) {
       console.error('Failed to send confirmation email:', emailErr.message);
     }
+    try {
+  await sendAdminPurchaseNotificationEmail({
+    name: registration.booksHelperName,
+    booksCount: registration.numberOfFreeBooks,
+    amount: registration.amount,
+    regNo: registration.regNo,
+    paymentId: registration.razorpayPaymentId,
+    email: registration.email
+  });
+} catch (emailErr) {
+  console.error('Failed to send admin notification email:', emailErr.message);
+}
 
     res.json({ message: 'Payment verified.', user: updatedUser, registration });
   } catch (err) {
