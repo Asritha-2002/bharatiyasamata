@@ -16,8 +16,10 @@ function handleUploadError(err, req, res, next) {
   if (err && err.message && err.message.includes('Only JPG, PNG, and WEBP')) {
     return res.status(400).json({ message: err.message });
   }
+  
 
   next(err);
 }
+
 
 module.exports = handleUploadError;

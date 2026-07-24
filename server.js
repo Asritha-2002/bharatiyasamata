@@ -34,7 +34,9 @@ app.use('/api/contact', require('./routes/contact.js'));
 app.use('/api/kyc', require('./routes/kyc.js'));
 app.use('/api/payouts', require('./routes/payout.js'));
 app.use('/api/settings', require('./routes/settings.js'));
-
+app.use('/api/appointments', require('./routes/appointments.js'));
+app.use('/api/downloads', require('./routes/downloads.js'));
+app.use('/api/how-to-help', require('./routes/howToHelpRoutes.js'));
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
